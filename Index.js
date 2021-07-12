@@ -1,10 +1,50 @@
 const { SSL_OP_EPHEMERAL_RSA } = require("constants");
+
 const puppeteer = require("puppeteer");
 
-async function tryLogin() {
-  const browser = await puppeteer.launch({ headless: false });
-  const page = await browser.newPage();
-  await page.goto("https://locucaobrasil.com.br/painel/");
+const running = true;
+
+(async function main() {
+
+    const browser = await puppeteer.launch({ headless: false });
+    const page = await browser.newPage();
+
+    while (running) {
+
+        if (await isLogged(page)) {
+            console.log("Logado");
+        }
+        else {
+            await tryLogin(page);
+        };
+
+        await sleep(10000);
+
+    };
+
+})();
+
+
+
+async function isLogged(page) {
+
+    returnValue = false;
+
+    await page.goto("https://locucaobrasil.com.br/painel/informacoes/termos-de-uso-locutor");
+
+    returnValue = await page.evaluate(() => {
+        let el = document.querySelector("input[value='1452']")
+        return el ? true : false
+    })
+
+    return returnValue;
+}
+
+
+
+async function tryLogin(page) {
+
+    await page.goto("https://locucaobrasil.com.br/painel/");
   await page.screenshot({ path: "example.png" });
 
   // Type our query into the form
@@ -25,7 +65,7 @@ async function tryLogin() {
   await page.waitForNavigation({ waitUntil: "load" });
   await page.screenshot({ path: "example3.png" });
 
-  return { browser, page };
+  return true;
 }
 
 function sleep(ms) {
@@ -33,26 +73,3 @@ function sleep(ms) {
     setTimeout(resolve, ms);
   });
 }
-
-(async function keepAlive() {
-  let alive = true;
-
-  while (alive) {
-    const { browser, page } = await tryLogin();
-    await page.goto("https://locucaobrasil.com.br/painel/gravar");
-
-    const loaded = await page.waitForSelector("#tGravar");
-    const toRecord = await page.waitForSelector("#tGravar tbody tr");
-    const result = await page.$$eval("#tGravar tbody tr", (rows) => {
-      return Array.from(rows, (row) => {
-        const columns = row.querySelectorAll("td");
-        return columns[1].innerText;
-      });
-    });
-    console.log(result);
-
-    await sleep(1800000);
-
-    page.close();
-  }
-})();
