@@ -61,7 +61,7 @@ var lastUpdate = -1;
         }
         else {
             await tryLogin(page);
-            await sleep(10000);
+            await sleep(5000);
         };
 
         console.log('-------------------');
@@ -74,7 +74,6 @@ var lastUpdate = -1;
     };
 
 })();
-
 
 
 async function isLogged(page) {
@@ -92,31 +91,50 @@ async function isLogged(page) {
 }
 
 
+
+
 async function checkRecordTable(page) {
 
-  console.log('Staring checkRecordTable');
+  var recordId = '';
 
-  await page.goto("https://locucaobrasil.com.br/painel/gravar");
-  await page.waitForNavigation({ waitUntil: "load" });
-  console.log('------2');
+  recordId = await page.evaluate(_ => {
 
-  await page.waitForSelector('#tGravar', { timeout: 5000 } );
-  
-  console.log('------3');
+    document.body.style.background = '#000';
 
-  const tableArray = await page.$$eval('#tGravar tr', rows => {
-    return Array.from(rows, row => {
-      const columns = row.querySelectorAll('td');
-      return Array.from(columns, column => column.innerText);
-    });
+    var getRecordId = '';
+
+    async function checkRecordTableGetData() { 
+      return $.ajax({
+        url: 'https://locucaobrasil.com.br/painel/!/t_gravar',
+        data: { 'draw' : 3, 'start' : 0, 'length' : 20, 'search[regex]' : false },
+        type: "POST"
+      });
+    };
+
+    var response = response();
+
+    $.each(response.data, function( index, value ) {
+      if (value.status.indexOf("Gravação") > 0 &&  value.acao.indexOf("painel/estudio-gravacao/"))  {
+        var regExp = /^.+ainel\/estudio-gravacao\/([\d]+)/;
+        var matches = regExp.exec(value.acao);
+        getRecordId = matches[1];
+        console.log('--#########------------');
+        console.log(getRecordId);
+        return false;
+      } 
+    })      
+
+    console.log('>>>>');
+    console.log(getRecordId);
+    console.log('<<<<');
+    return getRecordId;
   });
 
-
-  console.log(tableArray);
-
-  
+  console.log('#########');
+  console.log(recordId);
 
 }
+
 
 
 
