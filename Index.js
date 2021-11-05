@@ -2,7 +2,9 @@ const { SSL_OP_EPHEMERAL_RSA } = require("constants");
 
 const puppeteer = require("puppeteer");
 const running = true;
-const currentCourse = 'check_record_list';
+const currentCourse = 'check_record_list_looking_for_waiting_to_record';
+
+var recordIdList = ['teste'];
 
 var sleepTime = 10000;
 var lastUpdate = -1;
@@ -20,39 +22,18 @@ var lastUpdate = -1;
         if (await isLogged(page)) {
 
           console.log('==========================');
-          //console.log(element);
-          //console.log(value);
-          //let element = await page.$('div selector')
-          //let value = await page.evaluate(el => el.textContent, element)
-          //const element = await page.$('.top-bar div[data-notificacoes]');
-          //console.log(element);
-          /*
-          for(var i = 0; i < elements.length;i++)
-          {
-            console.log(elements[i]);
-            //const textProp = await elements[i].getProperty('updates');
-            //var text = await textProp.jsonValue();
-            //console.log("Text Result ",text);
-          }*/          
-
-          //.top-bar div[data-notificacoes] div.dropdown 
-
-          //const recordCount = await page.$eval("span[controlenews]", el => el.getAttribute("gravar"));
-
-          //console.log(recordCount);
-
 
           switch (currentCourse) {
-            case 'check_record_list':
-              await checkRecordTable(page);
+            case 'check_record_list_looking_for_waiting_to_record':
+              await checkRecordTableGettingWaitingToRecord(page, browser);
+              currentCourse = 'check_record_list_looking_for_recording';
               break;
 
-            case 'Mangoes':
-
-            case 'Papayas':
-              console.log('Mangoes and papayas are $2.79 a pound.');
-              // expected output: "Mangoes and papayas are $2.79 a pound."
+            case 'check_record_list_looking_for_recording':
+              //await checkRecordTableGettingRecording(page, browser);
+              currentCourse = 'do_nothing';
               break;
+
             default:
               //console.log(`Sorry, we are out of ${currentCourse}.`);
           }
@@ -68,8 +49,6 @@ var lastUpdate = -1;
         console.log(`currentCourse : ${currentCourse}.`);
         let date_ob = new Date();
         console.log(date_ob.toTimeString());
-        
-
         
     };
 
@@ -92,12 +71,11 @@ async function isLogged(page) {
 
 
 
-
-async function checkRecordTable(page) {
+async function checkRecordTableGettingRecording(page, browser) {
 
   var recordId = '';
 
-  recordId = await page.evaluate(_ => {
+  recordId = await page.evaluate(async function(recordIdList) {
 
     document.body.style.background = '#000';
 
@@ -111,7 +89,59 @@ async function checkRecordTable(page) {
       });
     };
 
-    var response = response();
+    var response = await checkRecordTableGetData();
+
+    console.log('buuu');
+    console.log(recordIdList);
+
+    $.each(response.data, function( index, value ) {
+      if (value.status.indexOf("Gravando") > 0 &&  value.acao.indexOf("painel/estudio-gravacao/"))  {
+        var regExp = /^.+ainel\/estudio-gravacao\/([\d]+)/;
+        var matches = regExp.exec(value.acao);
+        getRecordId = matches[1];
+        console.log('--#########------------');
+        console.log(getRecordId);
+        if (getRecordId) {
+          const foundId = arr.find((id) => id === getRecordId)
+
+          if (!foundId) {
+            console.log(getRecordId);
+            return false;
+          }
+
+        }
+      } 
+    }, )      
+
+    console.log('>>>>');
+    console.log(getRecordId);
+    console.log('<<<<');
+    return getRecordId;
+  }, recordIdList);
+
+}
+
+
+
+async function checkRecordTableGettingWaitingToRecord(page, browser) {
+
+  var recordId = await page.evaluate(async function() {
+
+    document.body.style.background = '#000';
+
+    var getRecordId = '';
+
+    async function checkRecordTableGetData() { 
+      return $.ajax({
+        url: 'https://locucaobrasil.com.br/painel/!/t_gravar',
+        data: { 'draw' : 3, 'start' : 0, 'length' : 20, 'search[regex]' : false },
+        type: "POST"
+      });
+    };
+
+    var response = await checkRecordTableGetData();
+
+    console.log(response.data);
 
     $.each(response.data, function( index, value ) {
       if (value.status.indexOf("Gravação") > 0 &&  value.acao.indexOf("painel/estudio-gravacao/"))  {
@@ -130,8 +160,16 @@ async function checkRecordTable(page) {
     return getRecordId;
   });
 
-  console.log('#########');
+  console.log('1)---->');
   console.log(recordId);
+
+  if (recordId) {
+    console.log('2)---->');
+    console.log('Abrindo a locução.');
+    const pageGetRecord = await browser.newPage();
+    await pageGetRecord.goto("https://locucaobrasil.com.br/painel/estudio-gravacao/" + recordId);
+    await pageGetRecord.close();
+  }
 
 }
 
