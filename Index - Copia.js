@@ -2,7 +2,7 @@ const { SSL_OP_EPHEMERAL_RSA } = require("constants");
 
 const puppeteer = require("puppeteer");
 const running = true;
-const currentCourse = 'check_lista_de_locutores';
+const currentCourse = 'check_record_list_looking_for_waiting_to_record';
 
 var recordIdList = ['teste'];
 
@@ -15,7 +15,7 @@ var lastUpdate = -1;
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
 
-  await page.goto("https://locucaobrasil.com.br/painel/informacoes/ajuda");
+  await page.goto("https://locucaobrasil.com.br/painel/informacoes/termos-de-uso-locutor");
 
   while (running) {
 
@@ -24,9 +24,9 @@ var lastUpdate = -1;
           console.log('==========================');
 
           switch (currentCourse) {
-            case 'check_lista_de_locutores':
-              await checkListaDeLocutores(page, browser);
-              currentCourse = 'sei la';
+            case 'check_record_list_looking_for_waiting_to_record':
+              await checkRecordTableGettingWaitingToRecord(page, browser);
+              currentCourse = 'check_record_list_looking_for_recording';
               break;
 
             case 'check_record_list_looking_for_recording':
@@ -71,7 +71,7 @@ async function isLogged(page) {
 
 
 
-async function checkListaDeLocutores(page, browser) {
+async function checkRecordTableGettingRecording(page, browser) {
 
   var recordId = '';
 
@@ -83,7 +83,8 @@ async function checkListaDeLocutores(page, browser) {
 
     async function checkRecordTableGetData() { 
       return $.ajax({
-        url: 'https://locucaobrasil.com.br/painel/!/t_horarios_locutores',
+        url: 'https://locucaobrasil.com.br/painel/!/t_gravar',
+        data: { 'draw' : 3, 'start' : 0, 'length' : 20, 'search[regex]' : false },
         type: "POST"
       });
     };
@@ -91,9 +92,26 @@ async function checkListaDeLocutores(page, browser) {
     var response = await checkRecordTableGetData();
 
     console.log('buuu');
-    console.log(response);
+    console.log(recordIdList);
 
-       
+    $.each(response.data, function( index, value ) {
+      if (value.status.indexOf("Gravando") > 0 &&  value.acao.indexOf("painel/estudio-gravacao/"))  {
+        var regExp = /^.+ainel\/estudio-gravacao\/([\d]+)/;
+        var matches = regExp.exec(value.acao);
+        getRecordId = matches[1];
+        console.log('--#########------------');
+        console.log(getRecordId);
+        if (getRecordId) {
+          const foundId = arr.find((id) => id === getRecordId)
+
+          if (!foundId) {
+            console.log(getRecordId);
+            return false;
+          }
+
+        }
+      } 
+    }, )      
 
     console.log('>>>>');
     console.log(getRecordId);
@@ -169,11 +187,11 @@ async function tryLogin(page) {
   let input = await page.waitForSelector(
     'input.intro-x.login__input.input.input--lg.border.border-gray-300.block[type="text"]'
   );
-  await input.type("audiospot");
+  await input.type("aureolopes");
   input = await page.waitForSelector(
     'input.intro-x.login__input.input.input--lg.border.border-gray-300.block.mt-4[type="password"]'
   );
-  await input.type("123456");
+  await input.type("indio6678");
   //await page.screenshot({ path: "example2.png" });
 
   // Submit form
